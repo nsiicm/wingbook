@@ -1,0 +1,28 @@
+from django.db import models
+
+
+class Flight(models.Model):
+    date = models.DateField()
+    departure_airport = models.CharField(max_length=100)
+    departure_time = models.TimeField()
+    arrival_airport = models.CharField(max_length=100)
+    arrival_time = models.TimeField()
+    plane = models.ForeignKey('Plane', on_delete=models.PROTECT)
+    se_duration = models.DurationField()
+    me_duration = models.DurationField()
+    multi_pilot_duration = models.DurationField()
+    flight_duration = models.DurationField()
+    pilot_in_command = models.ForeignKey('Person', related_name='pilot_in_command', on_delete=models.PROTECT)
+    landing_day_num = models.IntegerField()
+    landing_night_num = models.IntegerField()
+    ifr_apch_num = models.IntegerField()
+    night_duration = models.DurationField()
+    ifr_duration = models.DurationField()
+    pilot_in_command_duration = models.DurationField()
+    copilot_duration = models.DurationField()
+    dual_duration = models.DurationField()
+    instructor_duration = models.DurationField()
+    simulator_date = models.DateField(blank=True, null=True)
+    simulator_type = models.CharField(max_length=100, blank=True, null=True)
+    simulator_duration = models.DurationField(blank=True, null=True)
+    comments = models.TextField(blank=True)
