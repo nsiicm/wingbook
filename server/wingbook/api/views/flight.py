@@ -79,15 +79,15 @@ class FlightViewSet(viewsets.ModelViewSet):
                     destination_account=passenger_account,
                     flight=serializer.instance,
                 )
-            plane_account = Account.objects.get(plane=serializer.validated_data['plane'].id)
-            Operation.objects.create(
-                type="debit",
-                date=serializer.validated_data['date'],
-                amount=serializer.validated_data['price'],
-                description=f"Flight {serializer.instance.id}",
-                destination_account=plane_account,
-                flight=serializer.instance,
-            )
+        plane_account = Account.objects.get(plane=serializer.validated_data['plane'].id)
+        Operation.objects.create(
+            type="debit",
+            date=serializer.validated_data['date'],
+            amount=serializer.validated_data['price'],
+            description=f"Flight {serializer.instance.id}",
+            destination_account=plane_account,
+            flight=serializer.instance,
+        )
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
