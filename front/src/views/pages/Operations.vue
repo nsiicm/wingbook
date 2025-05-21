@@ -94,7 +94,11 @@ function saveoperation() {
 }
 
 function editOperation(prod) {
-    operation.value = { ...prod };
+    operation.value = {
+        ...prod,
+        source_account: prod.source_account?.id ?? null,
+        destination_account: prod.destination_account?.id ?? null,
+    };
     operationDialog.value = true;
 }
 
@@ -253,7 +257,7 @@ function deleteSelectedoperations() {
                 <i class="pi pi-exclamation-triangle !text-3xl" />
                 <span v-if="operation">Are you sure you want to delete <b>{{ operation.first_name }} {{
                     operation.last_name
-                }}</b>?</span>
+                        }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteoperationDialog = false" />
