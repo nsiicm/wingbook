@@ -6,7 +6,7 @@ services:
     # ports:
     #   - 5432:5432
     volumes:
-      - ../volumes/postgres:/var/lib/postgresql/data
+      - ${VOLUMES_LOCATION}/postgres:/var/lib/postgresql/data
     env_file:
       - .env
     networks:
@@ -23,7 +23,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ../volumes/backups:/backups
+      - ${VOLUMES_LOCATION}/backups:/backups
     depends_on:
       - postgres
     networks:
