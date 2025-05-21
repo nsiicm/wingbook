@@ -9,6 +9,7 @@ services:
       - ../stack.env
     networks:
       - wingbook
+      - traefik_default
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wingbook"]
       interval: 5s
@@ -41,6 +42,7 @@ services:
       - ../stack.env
     networks:
       - wingbook
+      - traefik_default
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,6 +54,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8013:3000
+    networks:
+      - traefik_default
     labels:
       - "traefik.http.routers.wingbook_front.rule=Host(`wingbook.nsimon.net`)"
       - "traefik.http.routers.wingbook_front.entrypoints=web"
@@ -62,3 +66,6 @@ services:
 
 networks:
   wingbook:
+  traefik_default:
+    name: traefik_default
+    external: true
