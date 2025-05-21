@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
-from api.serializers.plane import PlaneSerializer
+from api.serializers.plane import PlaneSerializer, PlaneSerializerDetail
 from api.models.plane import Plane
 
 
@@ -27,3 +27,14 @@ class PlaneViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response({"message": "Plane updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+                        
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = PlaneSerializerDetail(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

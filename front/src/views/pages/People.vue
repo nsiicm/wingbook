@@ -50,7 +50,7 @@ function saveperson() {
             });
     } else
     {
-    if (person.value.first_name && person.value.model) { // Add validation for required fields
+    if (person.value.first_name && person.value.last_name) { // Add validation for required fields
         api.post('/people/', person.value)
             .then((response) => {
                 persons.value.push(response.data); // Add the newly created person to the list

@@ -25,6 +25,16 @@ const model = ref([
                 label: 'Flights',
                 icon: 'pi pi-fw pi-plane',
                 to: '/flights'
+            },
+            {
+                label: 'Accounts',
+                icon: 'pi pi-fw pi-user',
+                to: '/accounts'
+            },
+            {
+                label: 'Operations',
+                icon: 'pi pi-fw pi-briefcase',
+                to: '/operations'
             }
         ]
     }

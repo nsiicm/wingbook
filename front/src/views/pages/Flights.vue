@@ -3,10 +3,37 @@ import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 import api from '@/axios';
+import router from '@/router';
 
+function fetchFlights() {
+    api.get('/flights/').then((response) => {
+        flights.value = response.data.map((flight) => {
+            // Remove seconds from time fields
+            flight.departure_time = removeSeconds(flight.departure_time);
+            flight.arrival_time = removeSeconds(flight.arrival_time);
+            flight.flight_duration = removeSeconds(flight.flight_duration);
+            flight.se_duration = removeSeconds(flight.se_duration);
+            flight.me_duration = removeSeconds(flight.me_duration);
+            flight.multi_pilot_duration = removeSeconds(flight.multi_pilot_duration);
+            flight.night_duration = removeSeconds(flight.night_duration);
+            flight.ifr_duration = removeSeconds(flight.ifr_duration);
+            flight.pilot_in_command_duration = removeSeconds(flight.pilot_in_command_duration);
+            flight.copilot_duration = removeSeconds(flight.copilot_duration);
+            flight.dual_duration = removeSeconds(flight.dual_duration);
+            flight.instructor_duration = removeSeconds(flight.instructor_duration);
+            flight.simulator_duration = removeSeconds(flight.simulator_duration);
+            return flight;
+        });
+    });
+}
+// Call the function in onMounted
 onMounted(() => {
-    api.get('/flights/').then((response) => (flights.value = response.data))
+    fetchFlights();
+    api.get('/planes/').then((response) => (dropdownPlanes.value = response.data)); // Fetch planes for dropdown
+    api.get('/people/?is_pilot=true').then((response) => (dropdownPilots.value = response.data)); // Fetch pilots for dropdown
+    api.get('/people/').then((response) => (dropdownPassengers.value = response.data)); // Fetch passengers for dropdown
 });
+
 
 const toast = useToast();
 const dt = ref();
@@ -15,16 +42,26 @@ const flightDialog = ref(false);
 const deleteFlightDialog = ref(false);
 const deleteflightsDialog = ref(false);
 const flight = ref({});
+const dropdownPlanes = ref([]); // Ref to store planes for the dropdown
+const dropdownPilots = ref([]); // Ref to store pilots for the dropdown
+const dropdownPassengers = ref([]); // Ref to store passengers for the dropdown
 const selectedflights = ref();
 const filters = ref({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS }
 });
 const submitted = ref(false);
 
+function removeSeconds(time) {
+    if (typeof time === 'string' && time.includes(':')) {
+        const parts = time.split(':');
+        return parts.length > 2 ? `${parts[0]}:${parts[1]}` : time; // Keep only hours and minutes
+    }
+    return time;
+}
+
 function openNew() {
-    flight.value = {};
-    submitted.value = false;
-    flightDialog.value = true;
+    flight.value = {}; // Clear the flight object
+    router.push({ name: 'flight', params: { id: 'new' } }); // Redirect to the flightForm page with a new id
 }
 
 function hideDialog() {
@@ -32,43 +69,113 @@ function hideDialog() {
     submitted.value = false;
 }
 
+function formatDuration(value) {
+        if (!value) {
+            return "00:00:00";
+        } else {
+            // If value is a Date object, format it to HH:MM:SS
+            if (value instanceof Date) {
+                value = value.toTimeString().split(' ')[0]
+            }
+        }
+        console.log(value)
+        return value
+    }
+
 function saveflight() {
     submitted.value = true;
+
+    // Helper function to format duration values
+
+
+    // Format all duration fields
+    console.log(flight.value)
+    flight.value.date = (flight.value.date instanceof Date)
+    ? flight.value.date.toISOString().split('T')[0]
+    : new Date(flight.value.date).toISOString().split('T')[0];
+    flight.value.departure_time = formatDuration(flight.value.departure_time);
+    flight.value.arrival_time = formatDuration(flight.value.arrival_time);
+    flight.value.flight_duration = formatDuration(flight.value.flight_duration);
+    flight.value.se_duration = formatDuration(flight.value.se_duration);
+    flight.value.me_duration = formatDuration(flight.value.me_duration);
+    flight.value.multi_pilot_duration = formatDuration(flight.value.multi_pilot_duration);
+    flight.value.night_duration = formatDuration(flight.value.night_duration);
+    flight.value.ifr_duration = formatDuration(flight.value.ifr_duration);
+    flight.value.pilot_in_command_duration = formatDuration(flight.value.pilot_in_command_duration);
+    flight.value.copilot_duration = formatDuration(flight.value.copilot_duration);
+    flight.value.dual_duration = formatDuration(flight.value.dual_duration);
+    flight.value.instructor_duration = formatDuration(flight.value.instructor_duration);
+    flight.value.simulator_duration = formatDuration(flight.value.simulator_duration);
+
+    flight.value.pilot_in_command = flight.value.pilot_in_command.id;
+    flight.value.plane = flight.value.plane.id;
+    flight.value.passengers = flight.value.passengers.map((passenger) => passenger.id); // Map passengers to their IDs
+
     if (flight.value.id) {
         const index = findIndexById(flight.value.id);
         flights.value[index] = { ...flights.value[index], ...flight.value };
-        api.put(`/people/${flight.value.id}/`, flight.value)
+        api.put(`/flights/${flight.value.id}/`, flight.value)
             .then(() => {
                 flights.value[index] = flight.value;
                 flightDialog.value = false;
                 flight.value = {};
                 toast.add({ severity: 'success', summary: 'Successful', detail: 'FlightUpdated', life: 3000 });
+                fetchFlights()
             })
             .catch((error) => {
                 console.error(error);
                 toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update flight', life: 3000 });
             });
-    } else
-    {
-    if (flight.value.first_name && flight.value.model) { // Add validation for required fields
-        api.post('/people/', flight.value)
-            .then((response) => {
-                flights.value.push(response.data); // Add the newly created flight to the list
-                flightDialog.value = false;
-                flight.value = {};
-                toast.add({ severity: 'success', summary: 'Successful', detail: 'FlightCreated', life: 3000 });
-            })
-            .catch((error) => {
-                console.error(error);
-                toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create flight', life: 3000 });
-            });
-    }
+    } else {
+        if (
+            true
+        ) {
+            api.post('/flights/', flight.value)
+                .then((response) => {
+                    flights.value.push(response.data); // Add the newly created flight to the list
+                    flightDialog.value = false;
+                    flight.value = {};
+                    toast.add({ severity: 'success', summary: 'Successful', detail: 'FlightCreated', life: 3000 });
+                })
+                .catch((error) => {
+                    console.error(error);
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create flight', life: 3000 });
+                });
+        }
     }
 }
 
 function editFlight(prod) {
-    flight.value = { ...prod };
-    flightDialog.value = true;
+    router.push({ name: 'flight', params: { id: prod.id } });
+    //flight.value = { ...prod };
+    // // Ensure flight.plane is the full object from dropdown
+    //const fullPlane = dropdownPlanes.value.find(
+    //    (plane) => plane.id === prod.plane?.id || plane.id === prod.plane
+    //);
+    //if (fullPlane) {
+    //    flight.value.plane = fullPlane;
+    //}
+//
+    //// Same for pilot
+    //const fullPilot = dropdownPilots.value.find(
+    //    (pilot) => pilot.id === prod.pilot_in_command?.id || pilot.id === prod.pilot_in_command
+    //);
+    //if (fullPilot) {
+    //    flight.value.pilot_in_command = fullPilot;
+    //}
+//
+    //const fullPassengers = prod.passengers.map((passenger) => {
+    //    return dropdownPassengers.value.find(
+    //        (p) => p.id === passenger.id || p.id === passenger
+    //    );
+    //});
+    //if (fullPassengers) {
+    //    flight.value.passengers = fullPassengers;
+    //}
+//
+    ////flight.value.plane = dropdownPlanes.value.find(plane => plane.id === prod.plane?.id || plane.id === prod.plane);
+    ////flight.value.pilot_in_command = dropdownPilots.value.find(pilot => pilot.id === prod.pilot_in_command?.id || pilot.id === prod.pilot_in_command);
+    //flightDialog.value = true;
 }
 
 function confirmDeleteFlight(prod) {
@@ -77,7 +184,7 @@ function confirmDeleteFlight(prod) {
 }
 
 function deleteflight() {
-    api.delete(`/people/${flight.value.id}/`)
+    api.delete(`/flights/${flight.value.id}/`)
         .then(() => {
             flights.value = flights.value.filter((val) => val.id !== flight.value.id);
             deleteFlightDialog.value = false;
@@ -88,6 +195,26 @@ function deleteflight() {
             console.error(error);
             toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete flight', life: 3000 });
         });
+}
+function compute_price(flight) {
+    if (typeof flight.price === 'number' && flight.price > 0) {
+        flight.price =  flight.price; // Return the existing price if already calculated
+    }
+    else if (flight.flight_duration && flight.plane && flight.plane.hour_price) {
+        const timeParts = formatDuration(flight.flight_duration).split(':');
+        const timeHoursFloat = parseInt(timeParts[0], 10) + parseInt(timeParts[1], 10) / 60;
+        console.log("Time in hours:", timeHoursFloat);
+        console.log("Plane price per hour:", flight.plane.hour_price);
+        if (flight.pilot_in_command.is_instructor) {
+            flight.price = (flight.plane.hour_price * timeHoursFloat + flight.plane.instructor_hour_price * timeHoursFloat).toFixed(2); // Increase price by 50% for instructor
+        } else {
+            flight.price = (flight.plane.hour_price * timeHoursFloat).toFixed(2);
+        }
+        console.log("Computed price:", flight.price);
+    } else {
+        flight.price = 0; // Default to 0 if required data is missing
+    }
+    console.log(flight.price)
 }
 
 function findIndexById(id) {
@@ -183,6 +310,19 @@ function deleteSelectedflights() {
                 <Column field="simulator_type" header="Simulator Type" sortable style="min-width: 12rem"></Column>
                 <Column field="simulator_duration" header="Simulator Duration" sortable style="min-width: 6rem"></Column>
                 <Column field="comments" header="Comments" sortable style="min-width: 12rem"></Column>
+                <Column field="passengers" header="Passengers" sortable style="min-width: 20rem">
+                    <template #body="slotProps">
+                        <div class="flex flex-wrap gap-2">
+                            <Chip 
+                                v-for="passenger in slotProps.data.passengers" 
+                                :key="passenger.id" 
+                                :label="`${passenger.first_name} ${passenger.last_name}`" 
+                                class="mr-2 mb-2" 
+                            />
+                        </div>
+                    </template>
+                </Column>
+                <Column field="price" header="Price (€)" sortable style="min-width: 6rem"></Column>
                 <Column :exportable="false" style="min-width: 12rem">
                     <template #body="slotProps">
                         <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editFlight(slotProps.data)" />
@@ -197,7 +337,15 @@ function deleteSelectedflights() {
                 <img v-if="flight.image" :src="`https://primefaces.org/cdn/primevue/images/flight/${flight.image}`" :alt="flight.image" class="block m-auto pb-4" />
                 <div>
                     <label for="date" class="block font-bold mb-3">Date</label>
-                    <DatePicker :showIcon="true" :showButtonBar="true" v-model="calendarValue"></DatePicker>
+                    <DatePicker 
+                        id="date" 
+                        :showIcon="true" 
+                        :showButtonBar="true" 
+                        v-model="flight.date" 
+                        :placeholder="'Select Date'" 
+                        required="true" 
+                        :invalid="submitted && !flight.date" 
+                    />
                 </div>
                 <div>
                     <label for="departure_airport" class="block font-bold mb-3">Departure Airport</label>
@@ -205,7 +353,7 @@ function deleteSelectedflights() {
                 </div>
                 <div>
                     <label for="departure_time" class="block font-bold mb-3">Departure Time</label>
-                    <TimePicker id="departure_time" v-model="flight.departure_time" :showIcon="true" :hourFormat="24" required="true" autofocus :invalid="submitted && !flight.departure_time" />
+                    <DatePicker id="departure_time" v-model="flight.departure_time" timeOnly fluid />
                 </div>
                 <div>
                     <label for="arrival_airport" class="block font-bold mb-3">Arrival Airport</label>
@@ -213,29 +361,138 @@ function deleteSelectedflights() {
                 </div>
                 <div>
                     <label for="arrival_time" class="block font-bold mb-3">Arrival Time</label>
-                    <InputText id="arrival_time" v-model.trim="flight.arrival_time" required="true" autofocus :invalid="submitted && !flight.arrival_time" fluid />
+                    <DatePicker id="arrival_time" v-model="flight.arrival_time" timeOnly fluid />
                 </div>
                 <div>
-                    <label for="first_name" class="block font-bold mb-3">First Name</label>
-                    <InputText id="first_name" v-model.trim="flight.first_name" required="true" autofocus :invalid="submitted && !flight.first_name" fluid />
-                    <small v-if="submitted && !flight.first_name" class="text-red-500">Registration is required.</small>
+                    <label for="plane" class="block font-bold mb-3">Plane</label>
+                    <Select v-model="flight.plane" :options="dropdownPlanes" optionLabel="registration_number" placeholder="Select" 
+                    @update:model-value="(value) => {
+                        update_price(flight)
+                    }"/>
                 </div>
                 <div>
-                    <label for="last_name" class="block font-bold mb-3">Last Name</label>
-                    <InputText id="last_name" v-model="flight.last_name" required="true" rows="3" cols="20" fluid />
+                    <label for="flight_duration" class="block font-bold mb-3">Flight Duration</label>
+                    <DatePicker 
+                        id="flight_duration" 
+                        v-model="flight.flight_duration" 
+                        timeOnly 
+                        fluid 
+                        @update:model-value="(value) => {
+                            flight.flight_duration = value;
+                            if (flight.plane && flight.plane.single_engine === true) {
+                                flight.se_duration = value;
+                            }
+                            if (flight.plane && flight.plane.single_engine === false) {
+                                flight.me_duration = value;
+                            }
+                            if (flight.plane && flight.plane.single_pilot === false) {
+                                flight.multi_pilot_duration = value;
+                            }
+                            compute_price(flight)
+                        }"
+                    />
                 </div>
                 <div>
-                    <label for="is_pilot" class="block dont-bold mb-3"> Is Pilot </label>
-                    <InputSwitch id="is_pilot" v-model="flight.is_pilot" />
+                    <label for="se_duration" class="block font-bold mb-3">Single Engine Duration</label>
+                    <DatePicker 
+                        id="se_duration" 
+                        v-model="flight.se_duration" 
+                        timeOnly 
+                        fluid 
+                        :disabled="flight.plane && flight.plane.single_engine" 
+                    />
                 </div>
                 <div>
-                    <label for="is_instructor" class="block dont-bold mb-3"> Is Instructor </label>
-                    <InputSwitch id="is_instructor" v-model="flight.is_instructor" />
+                    <label for="me_duration" class="block font-bold mb-3">Multi Engine Duration</label>
+                    <DatePicker 
+                        id="me_duration" 
+                        v-model="flight.me_duration" 
+                        timeOnly 
+                        fluid 
+                        :disabled="flight.plane && flight.plane.single_engine"
+                    />
                 </div>
                 <div>
-                    <label for="is_main_pilot" class="block dont-bold mb-3"> Is Main Pilot </label>
-                    <InputSwitch id="is_main_pilot" v-model="flight.is_main_pilot" />
+                    <label for="multi_pilot_duration" class="block font-bold mb-3">Multi Pilot Duration</label>
+                    <DatePicker
+                        id="multi_pilot_duration"
+                        v-model="flight.multi_pilot_duration"
+                        timeOnly
+                        fluid
+                        />
                 </div>
+                <div>
+                    <label for="pilot_in_command" class="block font-bold mb-3">Pilot in Command</label>
+                    <Select v-model="flight.pilot_in_command" :options="dropdownPilots" optionLabel="last_name" placeholder="Select" 
+                    @update:model-value="(value) => {
+                            flight.pilot_in_command = value;
+                            if (flight.pilot_in_command.is_main_pilot === true) {
+                                flight.pilot_in_command_duration = flight.flight_duration;
+                            }
+                            if (flight.pilot_in_command.is_main_pilot === false) {
+                                flight.dual_duration = flight.flight_duration;
+                            }
+                        }"/>
+                </div>
+                <div>
+                    <label for="landing_day_num" class="block font-bold mb-3">Landing Day</label>
+                    <InputNumber id="landing_day_num" v-model.trim="flight.landing_day_num" required="true" autofocus fluid />
+                </div>
+                <div>
+                    <label for="landing_night_num" class="block font-bold mb-3">Landing Night</label>
+                    <InputNumber id="landing_night_num" v-model.trim="flight.landing_night_num" required="true" autofocus fluid />
+                </div>
+                <div>
+                    <label for="ifr_apch_num" class="block font-bold mb-3">IFR Approach</label>
+                    <InputNumber id="ifr_apch_num" v-model.trim="flight.ifr_apch_num" required="true" autofocus fluid />
+                </div>
+                <div>
+                    <label for="night_duration" class="block font-bold mb-3">Night Duration</label>
+                    <DatePicker id="night_duration" v-model="flight.night_duration" timeOnly fluid />
+                </div>
+                <div>
+                    <label for="ifr_duration" class="block font-bold mb-3">IFR Duration</label>
+                    <DatePicker id="ifr_duration" v-model="flight.ifr_duration" timeOnly fluid />
+                </div>
+                <div>
+                    <label for="pilot_in_command_duration" class="block font-bold mb-3">Pilot in Command Duration</label>
+                    <DatePicker id="pilot_in_command_duration" v-model="flight.pilot_in_command_duration" timeOnly fluid />
+                </div>
+                <div>
+                    <label for="copilot_duration" class="block font-bold mb-3">Co-Pilot Duration</label>
+                    <DatePicker id="copilot_duration" v-model="flight.copilot_duration" timeOnly fluid />
+                </div>
+                <div>
+                    <label for="dual_duration" class="block font-bold mb-3">Dual Duration</label>
+                    <DatePicker id="dual_duration" v-model="flight.dual_duration" timeOnly fluid />
+                </div>
+                <div>
+                    <label for="instructor_duration" class="block font-bold mb-3">Instructor Duration</label>
+                    <DatePicker id="instructor_duration" v-model="flight.instructor_duration" timeOnly fluid />
+                </div>
+                <div>
+                    <label for="passengers" class="block font-bold mb-3">Passengers</label>
+                    <MultiSelect v-model="flight.passengers" :options="dropdownPassengers" optionLabel="name" placeholder="Select Passengers" :filter="true">
+                    <template #value="slotProps">
+                        <div class="inline-flex items-center py-1 px-2 bg-primary text-primary-contrast rounded-border mr-2" v-for="option of slotProps.value" :key="option.code">
+                            <div>{{ option.first_name }} {{ option.last_name }}</div>
+                        </div>
+                        <template v-if="!slotProps.value || slotProps.value.length === 0">
+                            <div class="p-1">Select Passengers</div>
+                        </template>
+                    </template>
+                    <template #option="slotProps">
+                        <div class="flex items-center">
+                            <div>{{ slotProps.option.first_name }} {{ slotProps.option.last_name }}</div>
+                        </div>
+                    </template>
+                </MultiSelect>
+                </div>
+                <div>
+                    <label for="price" class="block font-bold mb-3">Price</label>
+                    <InputText id="price" v-model.trim="flight.price" required="true" autofocus :invalid="submitted && !flight.price" fluid />
+                </div>
+
             </div>
 
             <template #footer>

@@ -6,16 +6,23 @@ from api.models.person import Person
 class PlaneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Plane
-        fields = ['model', 'registration_number']
+        fields = ['id', 'model', 'registration_number']
 
 class PersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
-        fields = ['last_name', 'first_name']
+        fields = '__all__'
 
-class FlightSerializer(serializers.ModelSerializer):
+class FlightSerializerDetail(serializers.ModelSerializer):
     plane = PlaneSerializer()
     pilot_in_command = PersonSerializer()
+    passengers = PersonSerializer(many=True)
+
+    class Meta:
+        model = Flight
+        fields = '__all__'
+
+class FlightSerializer(serializers.ModelSerializer):
     class Meta:
         model = Flight
         fields = '__all__'

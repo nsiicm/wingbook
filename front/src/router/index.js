@@ -27,6 +27,21 @@ const router = createRouter({
                     path: '/flights',
                     name: 'flights',
                     component: () => import('@/views/pages/Flights.vue')
+                },
+                {
+                    path: '/accounts',
+                    name: 'accounts',
+                    component: () => import('@/views/pages/Accounts.vue')
+                },
+                {
+                    path: '/operations',
+                    name: 'operations',
+                    component: () => import('@/views/pages/Operations.vue')
+                },
+                {
+                    path: '/flights/:id',
+                    name: 'flight',
+                    component: () => import('@/views/pages/FlightForm.vue')
                 }
             ]
         }

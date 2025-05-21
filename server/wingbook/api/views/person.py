@@ -4,6 +4,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from api.serializers.person import PersonSerializer
 from api.models.person import Person
+from api.models.account import Account
 
 class PersonViewSet(viewsets.ModelViewSet):
     """
@@ -26,6 +27,12 @@ class PersonViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.validator(serializer)
         self.perform_create(serializer)
+        # Automatically create an account
+        account = Account.objects.create(
+            name=f"{serializer.validated_data['first_name']} {serializer.validated_data['last_name']}",
+            person=serializer.instance
+        )
+        account.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     def destroy(self, request, *args, **kwargs):

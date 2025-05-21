@@ -7,6 +7,7 @@ import api from '@/axios';
 
 onMounted(() => {
     api.get('/planes').then((response) => (planes.value = response.data))
+    api.get('/accounts').then((response) => (dropdownAccounts.value = response.data))
 });
 
 const toast = useToast();
@@ -15,10 +16,12 @@ const planes = ref();
 const planeDialog = ref(false);
 const deletePlaneDialog = ref(false);
 const deleteplanesDialog = ref(false);
+const dropdownAccounts = ref([]);
 const plane = ref({});
 const selectedplanes = ref();
 const filters = ref({
-    global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    fields: {} // Ensure fields are initialized to avoid undefined errors
 });
 const submitted = ref(false);
 
@@ -49,21 +52,20 @@ function saveplane() {
                 console.error(error);
                 toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update plane', life: 3000 });
             });
-    } else
-    {
-    if (plane.value.registration_number && plane.value.model) { // Add validation for required fields
-        api.post('/planes/', plane.value)
-            .then((response) => {
-                planes.value.push(response.data); // Add the newly created plane to the list
-                planeDialog.value = false;
-                plane.value = {};
-                toast.add({ severity: 'success', summary: 'Successful', detail: 'Plane Created', life: 3000 });
-            })
-            .catch((error) => {
-                console.error(error);
-                toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create plane', life: 3000 });
-            });
-    }
+    } else {
+        if (plane.value.registration_number && plane.value.model) { // Add validation for required fields
+            api.post('/planes/', plane.value)
+                .then((response) => {
+                    planes.value.push(response.data); // Add the newly created plane to the list
+                    planeDialog.value = false;
+                    plane.value = {};
+                    toast.add({ severity: 'success', summary: 'Successful', detail: 'Plane Created', life: 3000 });
+                })
+                .catch((error) => {
+                    console.error(error);
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create plane', life: 3000 });
+                });
+        }
     }
 }
 
@@ -121,11 +123,12 @@ function deleteSelectedplanes() {
 
 <template>
     <div>
-        <div class="card">
+        <div class="card" v-if="planes">
             <Toolbar class="mb-6">
                 <template #start>
                     <Button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" @click="openNew" />
-                    <Button label="Delete" icon="pi pi-trash" severity="secondary" @click="confirmDeleteSelected" :disabled="!selectedplanes || !selectedplanes.length" />
+                    <Button label="Delete" icon="pi pi-trash" severity="secondary" @click="confirmDeleteSelected"
+                        :disabled="!selectedplanes || !selectedplanes.length" />
                 </template>
 
                 <template #end>
@@ -133,26 +136,20 @@ function deleteSelectedplanes() {
                 </template>
             </Toolbar>
 
-            <DataTable
-                ref="dt"
-                v-model:selection="selectedplanes"
-                :value="planes"
-                dataKey="id"
-                :paginator="true"
-                :rows="10"
-                :filters="filters"
+            <DataTable ref="dt" v-model:selection="selectedplanes" :value="planes" dataKey="id" :paginator="true"
+                :rows="10" :filters="filters"
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                 :rowsPerPageOptions="[5, 10, 25]"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} planes"
-            >
+                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} planes">
                 <template #header>
                     <div class="flex flex-wrap gap-2 items-center justify-between">
                         <h4 class="m-0">Manage planes</h4>
                         <IconField>
                             <InputIcon>
                                 <i class="pi pi-search" />
+                                <InputText v-model="filters.value.global.value" placeholder="Search..." />
+                                <InputText v-model="filters.value.global.value" placeholder="Search..." />
                             </InputIcon>
-                            <InputText v-model="filters['global'].value" placeholder="Search..." />
                         </IconField>
                     </div>
                 </template>
@@ -161,6 +158,19 @@ function deleteSelectedplanes() {
                 <Column field="id" header="Id" sortable style="min-width: 12rem"></Column>
                 <Column field="model" header="Model" sortable style="min-width: 16rem"></Column>
                 <Column field="registration_number" header="Registration" sortable style="min-width: 16rem"></Column>
+                <Column field="hour_price" header="Hour Price" sortable style="min-width: 12rem">
+                    <template #body="slotProps">
+                        <span v-if="slotProps.data.hour_price">{{ slotProps.data.hour_price | currency }}</span>
+                        <span v-else>0</span>
+                    </template>
+                </Column>
+                <Column field="instructor_hour_price" header="Instructor Hour Price" sortable style="min-width: 12rem">
+                    <template #body="slotProps">
+                        <span v-if="slotProps.data.instructor_hour_price">{{ slotProps.data.instructor_hour_price |
+                            currency }}</span>
+                        <span v-else>0</span>
+                    </template>
+                </Column>
                 <Column field="single_engine" header="Single Engine" sortable style="min-width: 12rem">
                     <template #body="slotProps">
                         <span v-if="slotProps.data.single_engine">Yes</span>
@@ -173,10 +183,20 @@ function deleteSelectedplanes() {
                         <span v-else>No</span>
                     </template>
                 </Column>
+
+                <Column v-if="dropdownAccounts" field="account" header="Account" :filter="true"
+                    :filterOptions="dropdownAccounts.map((account) => ({ label: account.name, value: account.id }))"
+                    :filterMatchMode="'contains'" :filterPlaceholder="'Select an account'" style="min-width: 12rem">
+                    <template #body="slotProps">
+                        <span v-if="slotProps.data.account">{{ slotProps.data.account.name }}</span>
+                        <span v-else>No Account</span>
+                    </template>
+                </Column>
                 <Column :exportable="false" style="min-width: 12rem">
                     <template #body="slotProps">
                         <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editPlane(slotProps.data)" />
-                        <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeletePlane(slotProps.data)" />
+                        <Button icon="pi pi-trash" outlined rounded severity="danger"
+                            @click="confirmDeletePlane(slotProps.data)" />
                     </template>
                 </Column>
             </DataTable>
@@ -184,24 +204,52 @@ function deleteSelectedplanes() {
 
         <Dialog v-model:visible="planeDialog" :style="{ width: '450px' }" header="plane Details" :modal="true">
             <div class="flex flex-col gap-6">
-                <img v-if="plane.image" :src="`https://primefaces.org/cdn/primevue/images/plane/${plane.image}`" :alt="plane.image" class="block m-auto pb-4" />
-                <div>
-                    <label for="registration_number" class="block font-bold mb-3">Registration</label>
-                    <InputText id="registration_number" v-model.trim="plane.registration_number" required="true" autofocus :invalid="submitted && !plane.registration_number" fluid />
-                    <small v-if="submitted && !plane.registration_number" class="text-red-500">Registration is required.</small>
-                </div>
-                <div>
-                    <label for="model" class="block font-bold mb-3">model</label>
-                    <InputText id="model" v-model="plane.model" required="true" rows="3" cols="20" fluid />
-                </div>
-                <div>
-                    <label for="single_engine" class="block font-bold mb-3">Single Engine</label>
-                    <InputSwitch id="single_engine" v-model="plane.single_engine" />
-                </div>
-                <div>
-                    <label for="single_pilot" class="block font-bold mb-3">Single Pilot</label>
-                    <InputSwitch id="single_pilot" v-model="plane.single_pilot" />
-                </div>
+            </div>
+            <img v-if="plane.image" :src="`https://primefaces.org/cdn/primevue/images/plane/${plane.image}`"
+                :alt="plane.image" class="block m-auto pb-4" />
+            <div>
+                <label for="registration_number" class="block font-bold mb-3">Registration</label>
+                <InputText id="registration_number" v-model.trim="plane.registration_number" required="true" autofocus
+                    :invalid="submitted && !plane.registration_number" fluid />
+                <small v-if="submitted && !plane.registration_number" class="text-red-500">Registration is
+                    required.</small>
+            </div>
+            <div>
+                <label for="model" class="block font-bold mb-3">model</label>
+                <InputText id="model" v-model="plane.model" required="true" rows="3" cols="20" fluid />
+            </div>
+            <div>
+                <label for="hour_price" class="block font-bold mb-3">Hour Price</label>
+                <InputNumber id="hour_price" v-model.number="plane.hour_price" required="true"
+                    :invalid="submitted && !plane.hour_price" fluid />
+                <small v-if="submitted && !plane.hour_price" class="text-red-500">Hour Price is required.</small>
+            </div>
+            <div>
+                <label for="instructor_hour_price" class="block font-bold mb-3">Instructor Hour Price</label>
+                <InputNumber id="instructor_hour_price" v-model.number="plane.instructor_hour_price" required="true"
+                    :invalid="submitted && !plane.instructor_hour_price" fluid />
+                <small v-if="submitted && !plane.instructor_hour_price" class="text-red-500">Instructor Hour Price is
+                    required.</small>
+            </div>
+            <div>
+                <label for="single_engine" class="block font-bold mb-3">Single Engine</label>
+                <InputSwitch id="single_engine" v-model="plane.single_engine" />
+            </div>
+            <div>
+                <label for="single_pilot" class="block font-bold mb-3">Single Pilot</label>
+                <InputSwitch id="single_pilot" v-model="plane.single_pilot" />
+            </div>
+            <div>
+                <label for="account" class="block font-bold mb-3">Account</label>
+                <Dropdown v-model="plane.account" :options="dropdownAccounts" optionValue="id"
+                    placeholder="Select an account" :filter="true" :showClear="true">
+                    <template #option="slotProps">
+                        {{ slotProps.option.name }}
+                    </template>
+                    <template #value="slotProps">
+                        {{ slotProps.value?.name }}
+                    </template>
+                </Dropdown>
             </div>
 
             <template #footer>
@@ -213,10 +261,7 @@ function deleteSelectedplanes() {
         <Dialog v-model:visible="deletePlaneDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle !text-3xl" />
-                <span v-if="plane"
-                    >Are you sure you want to delete <b>{{ plane.registration_number }}</b
-                    >?</span
-                >
+                <span v-if="plane">Are you sure you want to delete <b>{{ plane.registration_number }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteplaneDialog = false" />
