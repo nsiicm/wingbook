@@ -6,6 +6,11 @@ RUN npm install -g serve
 # définit le dossier 'app' comme dossier de travail
 WORKDIR /app
 
+# Accept build arg for VITE_API_BASE_URL
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+RUN echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" > .env
+
 # copie 'package.json' et 'package-lock.json' (si disponible)
 COPY package*.json ./
 

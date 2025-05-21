@@ -22,5 +22,5 @@ app.use(PrimeVue, {
 });
 app.use(ToastService);
 app.use(ConfirmationService);
-
+console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL);
 app.mount('#app');
