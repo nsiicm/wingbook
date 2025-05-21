@@ -32,6 +32,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8012:8000
+    labels:
+      - "traefik.http.routers.wingbook_api.rule=Host(`wingbook-api.nsimon.net`)"
+      - "traefik.http.routers.wingbook_api.entrypoints=web"
+      - "traefik.http.routers.wingbook_api.service=wingbook_api"
+      - "traefik.http.services.wingbook_api.loadbalancer.server.port=8000"
     env_file:
       - ../stack.env
     networks:
@@ -47,6 +52,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8013:3000
+    labels:
+      - "traefik.http.routers.wingbook_front.rule=Host(`wingbook.nsimon.net`)"
+      - "traefik.http.routers.wingbook_front.entrypoints=web"
+      - "traefik.http.routers.wingbook_front.service=wingbook_front"
+      - "traefik.http.services.wingbook_front.loadbalancer.server.port=3000"
     env_file:
       - ../stack.env
 

@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8012/api/', // your Django API base URL
+  baseURL: process.env.API_BASE_URL || 'http://localhost:8012/api/', // your Django API base URL
 });
 
 export default api;
