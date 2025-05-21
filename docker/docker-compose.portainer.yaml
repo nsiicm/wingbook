@@ -48,7 +48,7 @@ services:
     ports:
       - 8013:3000
     env_file:
-      - .env
+      - stack.env
 
 networks:
   wingbook:
