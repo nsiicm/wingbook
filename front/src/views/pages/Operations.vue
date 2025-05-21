@@ -5,8 +5,16 @@ import { onMounted, ref } from 'vue';
 import api from '@/axios';
 
 onMounted(() => {
-    api.get('/operations/').then((response) => (operations.value = response.data))
-    api.get('/accounts/').then((response) => (dropdownAccounts.value = response.data))
+    api.get('/operations/').then((response) => {
+        operations.value = response.data.map(op => ({
+            ...op,
+            date: op.date ? new Date(op.date) : null  // ✅ convert to Date object
+        }));
+    });
+
+    api.get('/accounts/').then((response) => {
+        dropdownAccounts.value = response.data;
+    });
 });
 
 const toast = useToast();
@@ -40,10 +48,19 @@ function hideDialog() {
     submitted.value = false;
 }
 
+function formatDateToLocalISO(date) {
+    if (!(date instanceof Date)) date = new Date(date);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 function saveoperation() {
-    operation.value.date = (operation.value.date instanceof Date)
-    ? operation.value.date.toISOString().split('T')[0]
-    : new Date(operation.value.date).toISOString().split('T')[0];
+    operation.value.date = formatDateToLocalISO(operation.value.date);
+    //operation.value.date = (operation.value.date instanceof Date)
+    //? operation.value.date.toISOString().split('T')[0]
+    //: new Date(operation.value.date).toISOString().split('T')[0];
     submitted.value = true;
     if (operation.value.id) {
         const index = findIndexById(operation.value.id);
@@ -59,21 +76,20 @@ function saveoperation() {
                 console.error(error);
                 toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update operation', life: 3000 });
             });
-    } else
-    {
-    if (operation.value.date && operation.value.destination_account && operation.value.amount) { // Add validation for required fields
-        api.post('/operations/', operation.value)
-            .then((response) => {
-                operations.value.push(response.data); // Add the newly created operation to the list
-                operationDialog.value = false;
-                operation.value = {};
-                toast.add({ severity: 'success', summary: 'Successful', detail: 'OperationCreated', life: 3000 });
-            })
-            .catch((error) => {
-                console.error(error);
-                toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create operation', life: 3000 });
-            });
-    }
+    } else {
+        if (operation.value.date && operation.value.destination_account && operation.value.amount) { // Add validation for required fields
+            api.post('/operations/', operation.value)
+                .then((response) => {
+                    operations.value.push(response.data); // Add the newly created operation to the list
+                    operationDialog.value = false;
+                    operation.value = {};
+                    toast.add({ severity: 'success', summary: 'Successful', detail: 'OperationCreated', life: 3000 });
+                })
+                .catch((error) => {
+                    console.error(error);
+                    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create operation', life: 3000 });
+                });
+        }
     }
 }
 
@@ -135,7 +151,8 @@ function deleteSelectedoperations() {
             <Toolbar class="mb-6">
                 <template #start>
                     <Button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" @click="openNew" />
-                    <Button label="Delete" icon="pi pi-trash" severity="secondary" @click="confirmDeleteSelected" :disabled="!selectedoperations || !selectedoperations.length" />
+                    <Button label="Delete" icon="pi pi-trash" severity="secondary" @click="confirmDeleteSelected"
+                        :disabled="!selectedoperations || !selectedoperations.length" />
                 </template>
 
                 <template #end>
@@ -143,18 +160,11 @@ function deleteSelectedoperations() {
                 </template>
             </Toolbar>
 
-            <DataTable
-                ref="dt"
-                v-model:selection="selectedoperations"
-                :value="operations"
-                dataKey="id"
-                :paginator="true"
-                :rows="10"
-                :filters="filters"
+            <DataTable ref="dt" v-model:selection="selectedoperations" :value="operations" dataKey="id"
+                :paginator="true" :rows="10" :filters="filters"
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                 :rowsPerPageOptions="[5, 10, 25]"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} operations"
-            >
+                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} operations">
                 <template #header>
                     <div class="flex flex-wrap gap-2 items-center justify-between">
                         <h4 class="m-0">Manage operations</h4>
@@ -169,16 +179,22 @@ function deleteSelectedoperations() {
 
                 <Column selectionMode="multiple" style="width: 3rem" :exportable="false"></Column>
                 <Column field="id" header="Id" sortable style="min-width: 12rem"></Column>
-                <Column field="date" header="Date" sortable style="min-width: 16rem"></Column>
+                <Column field="date" header="Date" sortable style="min-width: 16rem"> <template #body="slotProps">
+                        {{ formatDateToLocalISO(slotProps.data.date) }}
+                    </template>
+                </Column>
                 <Column field="type" header="Type" sortable style="min-width: 16rem"></Column>
                 <Column field="source_account.name" header="Source Account" sortable style="min-width: 16rem"></Column>
-                <Column field="destination_account.name" header="Destination Account" sortable style="min-width: 16rem"></Column>
+                <Column field="destination_account.name" header="Destination Account" sortable style="min-width: 16rem">
+                </Column>
                 <Column field="amount" header="Amount" sortable style="min-width: 16rem"></Column>
                 <Column field="description" header="Description" sortable style="min-width: 16rem"></Column>
                 <Column :exportable="false" style="min-width: 12rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editOperation(slotProps.data)" />
-                        <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteOperation(slotProps.data)" />
+                        <Button icon="pi pi-pencil" outlined rounded class="mr-2"
+                            @click="editOperation(slotProps.data)" />
+                        <Button icon="pi pi-trash" outlined rounded severity="danger"
+                            @click="confirmDeleteOperation(slotProps.data)" />
                     </template>
                 </Column>
             </DataTable>
@@ -186,60 +202,43 @@ function deleteSelectedoperations() {
 
         <Dialog v-model:visible="operationDialog" :style="{ width: '450px' }" header="operation Details" :modal="true">
             <div class="flex flex-col gap-6">
-                <img v-if="operation.image" :src="`https://primefaces.org/cdn/primevue/images/operation/${operation.image}`" :alt="operation.image" class="block m-auto pb-4" />
+                <img v-if="operation.image"
+                    :src="`https://primefaces.org/cdn/primevue/images/operation/${operation.image}`"
+                    :alt="operation.image" class="block m-auto pb-4" />
                 <div>
                     <label for="type" class="block font-bold mb-3">Type</label>
-                    <Select v-model="operation.type" :options="dropdownTypes" placeholder="Select a type" :filter="true" :showClear="true">
-                        <template #option="slotProps">
-                            {{ slotProps.option }}
-                        </template>
-                        <template #value="slotProps">
-                            {{ slotProps.value }}
-                        </template>
+                    <Select v-model="operation.type" :options="dropdownTypes" placeholder="Select a type" :filter="true"
+                        :showClear="true">
                     </Select>
                 </div>
                 <div>
                     <label for="date" class="block font-bold mb-3">Date</label>
-                    <DatePicker
-                        id="date"
-                        v-model="operation.date"
-                        :showIcon="true"
-                        :placeholder="'Select a date'"
-                        :required="true"
-                        :invalid="submitted && !operation.date"
-                        :showButtonBar="true"
-                    />
+                    <DatePicker id="date" v-model="operation.date" :showIcon="true" :placeholder="'Select a date'"
+                        :required="true" :invalid="submitted && !operation.date" :showButtonBar="true"
+                        dateFormat="yy-mm-dd" />
                 </div>
                 <div>
                     <label for="source_account" class="block font-bold mb-3">Source Account</label>
-                    <Select v-model="operation.source_account" :options="dropdownAccounts" optionValue="id" placeholder="Select an account" :filter="true" :showClear="true">
-                        <template #option="slotProps">
-                            {{ slotProps.option.name }}
-                        </template>
-                        <template #value="slotProps">
-                            {{ slotProps.value?.name }}
-                        </template>
+                    <Select v-model="operation.source_account" :options="dropdownAccounts" optionValue="id"
+                        placeholder="Select an account" :filter="true" :showClear="true" optionLabel="name">
                     </Select>
                 </div>
                 <div>
                     <label for="destination_account" class="block font-bold mb-3">Destination Account</label>
-                    <Select v-model="operation.destination_account" :options="dropdownAccounts" optionValue="id" placeholder="Select an account" :filter="true" :showClear="true">
-                        <template #option="slotProps">
-                            {{ slotProps.option.name }}
-                        </template>
-                        <template #value="slotProps">
-                            {{ slotProps.value?.name }}
-                        </template>
+                    <Select v-model="operation.destination_account" :options="dropdownAccounts" optionValue="id"
+                        placeholder="Select an account" :filter="true" :showClear="true" optionLabel="name">
                     </Select>
                 </div>
                 <div>
                     <label for="amount" class="block font-bold mb-3">Amount</label>
-                    <InputText id="amount" v-model="operation.amount" required="true" :invalid="submitted && !operation.amount" fluid />
+                    <InputText id="amount" v-model="operation.amount" required="true"
+                        :invalid="submitted && !operation.amount" fluid />
                     <small v-if="submitted && !operation.amount" class="text-red-500">Amount is required.</small>
                 </div>
                 <div>
                     <label for="description" class="block font-bold mb-3">Description</label>
-                    <InputText id="description" v-model="operation.description" required="true" rows="3" cols="20" fluid />
+                    <InputText id="description" v-model="operation.description" required="true" rows="3" cols="20"
+                        fluid />
                 </div>
             </div>
 
@@ -252,10 +251,9 @@ function deleteSelectedoperations() {
         <Dialog v-model:visible="deleteOperationDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle !text-3xl" />
-                <span v-if="operation"
-                    >Are you sure you want to delete <b>{{ operation.first_name }} {{ operation.last_name }}</b
-                    >?</span
-                >
+                <span v-if="operation">Are you sure you want to delete <b>{{ operation.first_name }} {{
+                    operation.last_name
+                }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteoperationDialog = false" />
