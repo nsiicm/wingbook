@@ -112,15 +112,9 @@ function saveflight() {
             passengerMap[passengerId] = flight.value.passengerInputs[passengerId];
         });
     }
-    if (flight.value.landing_night_num === undefined) {
-        flight.value.landing_night_num = 0;
-    }
-    if (flight.value.landing_day_num === undefined) {
-        flight.value.landing_day_num = 0;
-    }
-    if (flight.value.ifr_apch_num === undefined) {
-        flight.value.ifr_apch_num = 0;
-    }
+    flight.value.landing_night_num = parseInt(flight.value.landing_night_num, 10) || 0;
+    flight.value.landing_day_num = parseInt(flight.value.landing_day_num, 10) || 0;
+    flight.value.ifr_apch_num = parseInt(flight.value.ifr_apch_num, 10) || 0;
     console.log(passengerMap)
     flight.value.passengers_perc = passengerMap
     // Format all duration fields

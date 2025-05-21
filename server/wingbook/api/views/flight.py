@@ -37,6 +37,15 @@ class FlightViewSet(viewsets.ModelViewSet):
         return Response({"message": "Flight updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
     
     def create(self, request, *args, **kwargs):
+        request.data['landing_day_num'] = request.data.get('landing_day_num', 0)
+        if not isinstance(request.data['landing_day_num'], (int, float)):
+            request.data['landing_day_num'] = 0
+        request.data['landing_night_num'] = request.data.get('landing_night_num', 0)
+        if not isinstance(request.data['landing_night_num'], (int, float)):
+            request.data['landing_night_num'] = 0
+        request.data['ifr_apch_num'] = request.data.get('ifr_apch_num', 0)
+        if not isinstance(request.data['ifr_apch_num'], (int, float)):
+            request.data['ifr_apch_num'] = 0
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
