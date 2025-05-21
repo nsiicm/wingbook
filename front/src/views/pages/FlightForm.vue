@@ -31,6 +31,14 @@ onMounted(async () => {
 
     if (id.value !== 'new') {
         const flightRes = await api.get(`/flights/${id.value}`);
+        api.get(`/flights/${id.value}`).then((response) => {
+            const data = response.data;
+            flight.value = {
+                ...data,
+                date: data.date ? new Date(data.date) : null
+            };
+        });
+
         flight.value = flightRes.data;
 
         // Match and replace references with dropdown options
@@ -85,6 +93,13 @@ function formatDuration(value) {
     console.log(value)
     return value
 }
+function formatDateToLocalISO(date) {
+    if (!(date instanceof Date)) date = new Date(date);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 function saveflight() {
     submitted.value = true;
@@ -101,9 +116,11 @@ function saveflight() {
     flight.value.passengers_perc = passengerMap
     // Format all duration fields
     console.log(flight.value)
-    flight.value.date = (flight.value.date instanceof Date)
-        ? flight.value.date.toISOString().split('T')[0]
-        : new Date(flight.value.date).toISOString().split('T')[0];
+    flight.value.date = formatDateToLocalISO(flight.value.date);
+
+    //flight.value.date = (flight.value.date instanceof Date)
+    //    ? flight.value.date.toISOString().split('T')[0]
+    //    : new Date(flight.value.date).toISOString().split('T')[0];
     flight.value.departure_time = formatDuration(flight.value.departure_time);
     flight.value.arrival_time = formatDuration(flight.value.arrival_time);
     flight.value.flight_duration = formatDuration(flight.value.flight_duration);
@@ -253,7 +270,8 @@ function compute_passenger_costs() {
                         <label for="date" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Date</label>
                         <div class="col-span-12 md:col-span-10">
                             <DatePicker id="date" :showIcon="true" :showButtonBar="true" v-model="flight.date"
-                                :placeholder="'Select Date'" required="true" :invalid="submitted && !flight.date" />
+                                :placeholder="'Select Date'" required="true" :invalid="submitted && !flight.date"
+                                dateFormat="yy-mm-dd" />
                         </div>
                     </div>
                     <div class="grid grid-cols-12 gap-2">
