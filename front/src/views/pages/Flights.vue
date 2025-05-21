@@ -61,7 +61,7 @@ function removeSeconds(time) {
 
 function openNew() {
     flight.value = {}; // Clear the flight object
-    router.push({ name: 'flight', params: { id: 'new' } }); // Redirect to the flightForm page with a new id
+    router.push({ name: 'flight', params: { id: "new" } });
 }
 
 function hideDialog() {
