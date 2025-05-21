@@ -1,6 +1,7 @@
 volumes/
 sakai-vue/
 .env
+docker-compose.yaml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
