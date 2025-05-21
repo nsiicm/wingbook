@@ -112,6 +112,12 @@ function saveflight() {
             passengerMap[passengerId] = flight.value.passengerInputs[passengerId];
         });
     }
+    if (flight.landing_night_num === undefined) {
+        flight.landing_night_num = 0;
+    }
+    if (flight.landing_day_num === undefined) {
+        flight.landing_day_num = 0;
+    }
     console.log(passengerMap)
     flight.value.passengers_perc = passengerMap
     // Format all duration fields
