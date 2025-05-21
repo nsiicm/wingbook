@@ -175,6 +175,12 @@ function deleteSelectedoperations() {
                 <Column field="destination_account.name" header="Destination Account" sortable style="min-width: 16rem"></Column>
                 <Column field="amount" header="Amount" sortable style="min-width: 16rem"></Column>
                 <Column field="description" header="Description" sortable style="min-width: 16rem"></Column>
+                <Column :exportable="false" style="min-width: 12rem">
+                    <template #body="slotProps">
+                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editOperation(slotProps.data)" />
+                        <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteOperation(slotProps.data)" />
+                    </template>
+                </Column>
             </DataTable>
         </div>
 
