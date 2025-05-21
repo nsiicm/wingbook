@@ -6,7 +6,7 @@ services:
     volumes:
       - ${VOLUMES_LOCATION}/postgres:/var/lib/postgresql/data
     env_file:
-      - stack.env
+      - ../stack.env
     networks:
       - wingbook
     healthcheck:
@@ -19,7 +19,7 @@ services:
       context: ../backup/
       dockerfile: Dockerfile
     env_file:
-      - stack.env
+      - ../stack.env
     volumes:
       - ${VOLUMES_LOCATION}/backups:/backups
     depends_on:
@@ -33,7 +33,7 @@ services:
     ports:
       - 8012:8000
     env_file:
-      - stack.env
+      - ../stack.env
     networks:
       - wingbook
     depends_on:
@@ -48,7 +48,7 @@ services:
     ports:
       - 8013:3000
     env_file:
-      - stack.env
+      - ../stack.env
 
 networks:
   wingbook:
