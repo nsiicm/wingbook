@@ -18,49 +18,61 @@ class Operation(models.Model):
     description = models.TextField(blank=True)
     flight = models.ForeignKey('Flight', on_delete=models.CASCADE, blank=True, null=True)
 
+    def delete_related_transactions(self):
+        from api.models.transaction import Transaction  # Avoid circular import if needed
+        Transaction.objects.filter(operation=self).delete()
+
+    def create_transactions(self):
+        from api.models.transaction import Transaction  # Avoid circular import if needed
+        print(f"Creating transaction for operation : {self.type}")
+        if self.type == 'credit':
+            print("Creating credit transaction")
+            Transaction.objects.create(
+                account=self.destination_account,
+                amount=self.amount,
+                operation=self
+            )
+        elif self.type == 'debit':
+            print("Creating debit transaction")
+            Transaction.objects.create(
+                account=self.destination_account,
+                amount=-self.amount,
+                operation=self
+            )
+        elif self.type == 'transfer':
+            print("Creating transfer transaction")
+            Transaction.objects.create(
+                account=self.source_account,
+                amount=-self.amount,
+                operation=self
+            )
+            Transaction.objects.create(
+                account=self.destination_account,
+                amount=self.amount,
+                operation=self
+            )
+        elif self.type == 'refund':
+            print("Creating refund transaction")
+            Transaction.objects.create(
+                account=self.source_account,
+                amount=self.amount,
+                operation=self
+            )
+            Transaction.objects.create(
+                account=self.destination_account,
+                amount=self.amount,
+                operation=self
+            )
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         super().save(*args, **kwargs)
         print(is_new)
-        if is_new:
-            from api.models.transaction import Transaction  # Avoid circular import if needed
-            print(f"Creating transaction for operation : {self.type}")
-            if self.type == 'credit':
-                print("Creating credit transaction")
-                Transaction.objects.create(
-                    account=self.destination_account,
-                    amount=self.amount,
-                    operation=self
-                )
-            elif self.type == 'debit':
-                print("Creating debit transaction")
-                Transaction.objects.create(
-                    account=self.destination_account,
-                    amount=-self.amount,
-                    operation=self
-                )
-            elif self.type == 'transfer':
-                print("Creating transfer transaction")
-                Transaction.objects.create(
-                    account=self.source_account,
-                    amount=-self.amount,
-                    operation=self
-                )
-                Transaction.objects.create(
-                    account=self.destination_account,
-                    amount=self.amount,
-                    operation=self
-                )
-            elif self.type == 'refund':
-                print("Creating refund transaction")
-                Transaction.objects.create(
-                    account=self.source_account,
-                    amount=self.amount,
-                    operation=self
-                )
-                Transaction.objects.create(
-                    account=self.destination_account,
-                    amount=self.amount,
-                    operation=self
-                )
+        done = False
+        if not self._state.adding:
+            # If the operation is being updated, delete related transactions
+            self.delete_related_transactions()
+            self.create_transactions()
+            done = True
+        if is_new and done == False:
+            self.create_transactions()
