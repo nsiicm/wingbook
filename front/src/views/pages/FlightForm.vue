@@ -343,6 +343,13 @@ function compute_passenger_costs() {
                         </div>
                     </div>
                 </div>
+                <div class="card flex flex-col gap-4">
+                    <div class="font-semibold text-xl">Other</div>
+                    <div class="flex flex-col gap-2">
+                        <label for="comments">Comment</label>
+                        <Textarea id="comments" v-model.trim="flight.comments" rows="4" />
+                    </div>
+                </div>
             </div>
             <div class="md:w-1/2">
                 <div class="card flex flex-col gap-4">
